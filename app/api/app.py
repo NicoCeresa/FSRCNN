@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 
 import torch
-from flask import Flask, request, render_template, send_from_directory, url_for
+from flask import Flask, request, render_template, send_file, url_for
 
 from utilities import upscale, FSRCNN
 
@@ -24,8 +24,11 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
 BASE_DIR = Path(__file__).parent
-UPLOAD_FOLDER = str(BASE_DIR / 'static' / 'input')
-OUTPUT_FOLDER = str(BASE_DIR / 'static' / 'output')
+UPLOAD_FOLDER = '/tmp/input'
+OUTPUT_FOLDER = '/tmp/output'
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 logger.info(f"Using device: {device}")
@@ -35,8 +38,7 @@ def load_model(scale: int, model_path: str) -> torch.nn.Module:
     model = FSRCNN(scale=scale).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
-    model = torch.compile(model, mode='reduce-overhead')
-    logger.info(f"Loaded X{scale} model (compiled)")
+    logger.info(f"Loaded X{scale} model")
     return model
 
 
@@ -136,20 +138,16 @@ def get_prediction():
     )
 
 
-@app.route('/api/static/output/<path:filename>', methods=['GET'])
+@app.route('/output/<path:filename>', methods=['GET'])
 def download_img(filename):
-    logger.info(f"Download requested: {filename}")
-    
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(base_dir, 'static', 'output')
-    
-    logger.info(f"Serving from directory: {output_dir}")
-    return send_from_directory(
-        output_dir,
-        filename,
-        as_attachment=True,
-        mimetype='image/jpeg'
-    )
+    logger.info(f"Serving output: {filename}")
+    return send_file(f'/tmp/output/{filename}', mimetype='image/jpeg')
+
+
+@app.route('/input/<path:filename>', methods=['GET'])
+def serve_input(filename):
+    logger.info(f"Serving input: {filename}")
+    return send_file(f'/tmp/input/{filename}', mimetype='image/jpeg')
 
 
 @app.route('/prediction/health-check', methods=['GET'])
