@@ -1,0 +1,53 @@
+import torch
+import gradio as gr
+from PIL import Image
+from torchvision.transforms import v2
+from torchvision.transforms.functional import to_pil_image
+
+from fsrcnn import FSRCNN, FSRCNN_s
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+MODEL_PATHS = {
+    2: 'app/api/models/FSRCNN_2s_10e_1b_0.2.0.pth',
+    3: 'app/api/models/FSRCNN_3s_10e_1b_0.2.0.pth',
+    4: 'app/api/models/FSRCNN_4s_10e_1b_0.2.0.pth',
+}
+
+def load_model(scale: int) -> FSRCNN:
+    model = FSRCNN(scale=scale).to(device)
+    model.load_state_dict(torch.load(MODEL_PATHS[scale], map_location=device, weights_only=True))
+    model.eval()
+    return model
+
+models = {scale: load_model(scale) for scale in MODEL_PATHS}
+
+to_tensor = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
+
+SCALE_OPTIONS = ['2×', '3×', '4×']
+
+def upscale(image: Image.Image, scale_label: str) -> Image.Image:
+    scale = int(scale_label[0])
+    tensor = to_tensor(image).unsqueeze(0).to(device)
+    with torch.inference_mode():
+        output = models[scale](tensor)
+    return to_pil_image(output.squeeze(0).clamp(0, 1).cpu())
+
+
+demo = gr.Interface(
+    fn=upscale,
+    inputs=[
+        gr.Image(type='pil', label='Input Image'),
+        gr.Radio(choices=SCALE_OPTIONS, value='2×', label='Scale'),
+    ],
+    outputs=gr.Image(type='pil', label='Upscaled Output'),
+    title='FSRCNN — Super Resolution',
+    description='Fast Super-Resolution CNN ([Dong et al., 2016](https://arxiv.org/abs/1608.00367)). Upload a low-resolution image and select an upscaling factor.',
+    examples=[
+        ['images/bee_OG.png', '2×'],
+        ['images/china_og.png', '3×'],
+    ],
+)
+
+if __name__ == '__main__':
+    demo.launch()

@@ -1,3 +1,14 @@
+---
+title: FSRCNN Super Resolution
+emoji: 🔬
+colorFrom: green
+colorTo: blue
+sdk: gradio
+sdk_version: "4.0"
+app_file: app.py
+pinned: false
+---
+
 # Accelerating the Super-Resolution Convolutional Neural Network
 
 **Replicating the results of this paper:** https://arxiv.org/pdf/1608.00367.pdf <br/>
