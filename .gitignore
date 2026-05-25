@@ -1,11 +1,9 @@
 # open sesame
 
-images/
 zips/
 augmented_images/
-models/
+notebooks/models/
 utils/test
-notebooks/models
 utils/old/
 utils/models/
 __pycache__/
