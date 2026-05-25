@@ -63,6 +63,25 @@ class FSRCNN(nn.Module):
         nn.init.normal_(self.deconv.weight, mean=0.0, std=0.001)
         nn.init.zeros_(self.deconv.bias)
 
+    _LEGACY_KEY_MAP = {
+        'Conv1': 'feature_extraction',
+        'Conv2': 'shrinking',
+        'Conv3': 'mapping',
+        'Conv4': 'expanding',
+        'DeConv': 'deconv',
+    }
+
+    @classmethod
+    def remap_legacy_state_dict(cls, state_dict: dict) -> dict:
+        remapped = {}
+        for k, v in state_dict.items():
+            for old, new in cls._LEGACY_KEY_MAP.items():
+                if k.startswith(old + '.'):
+                    k = new + k[len(old):]
+                    break
+            remapped[k] = v
+        return remapped
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.feature_extraction(x)
         x = self.shrinking(x)

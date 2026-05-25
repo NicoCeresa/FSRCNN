@@ -16,7 +16,9 @@ MODEL_PATHS = {
 
 def load_model(scale: int) -> FSRCNN:
     model = FSRCNN(scale=scale).to(device)
-    model.load_state_dict(torch.load(MODEL_PATHS[scale], map_location=device, weights_only=True))
+    state_dict = torch.load(MODEL_PATHS[scale], map_location=device, weights_only=True)
+    state_dict = FSRCNN.remap_legacy_state_dict(state_dict)
+    model.load_state_dict(state_dict)
     model.eval()
     return model
 
@@ -34,20 +36,24 @@ def upscale(image: Image.Image, scale_label: str) -> Image.Image:
     return to_pil_image(output.squeeze(0).clamp(0, 1).cpu())
 
 
-demo = gr.Interface(
-    fn=upscale,
-    inputs=[
-        gr.Image(type='pil', label='Input Image'),
-        gr.Radio(choices=SCALE_OPTIONS, value='2×', label='Scale'),
-    ],
-    outputs=gr.Image(type='pil', label='Upscaled Output'),
-    title='FSRCNN — Super Resolution',
-    description='Fast Super-Resolution CNN ([Dong et al., 2016](https://arxiv.org/abs/1608.00367)). Upload a low-resolution image and select an upscaling factor.',
-    examples=[
-        ['images/bee_OG.png', '2×'],
-        ['images/china_og.png', '3×'],
-    ],
-)
+with gr.Blocks(title='FSRCNN — Super Resolution') as demo:
+    gr.Markdown('# FSRCNN — Super Resolution')
+    gr.Markdown('Fast Super-Resolution CNN ([Dong et al., 2016](https://arxiv.org/abs/1608.00367)). Upload a low-resolution image and select an upscaling factor.')
+
+    with gr.Row():
+        with gr.Column():
+            input_image = gr.Image(type='pil', label='Input Image', height=400, sources=['upload'])
+            scale_radio = gr.Radio(choices=SCALE_OPTIONS, value='2×', label='Scale')
+            run_btn = gr.Button('Upscale', variant='primary')
+        with gr.Column():
+            output_image = gr.Image(type='pil', label='Upscaled Output', height=400, show_download_button=True)
+
+    run_btn.click(fn=upscale, inputs=[input_image, scale_radio], outputs=output_image)
+
+    gr.Examples(
+        examples=[['images/bee_OG.png', '2×'], ['images/china_og.png', '3×']],
+        inputs=[input_image, scale_radio],
+    )
 
 if __name__ == '__main__':
     demo.launch()
