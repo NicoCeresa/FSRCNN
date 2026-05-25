@@ -10,3 +10,5 @@ utils/old/
 utils/models/
 __pycache__/
 app/compose.yml
+app/api/static/input/
+app/api/static/output/
