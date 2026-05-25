@@ -1,3 +1,3 @@
-from fsrcnn.model import FSRCNN
+from fsrcnn.model import FSRCNN, FSRCNN_s
 
-__all__ = ['FSRCNN']
+__all__ = ['FSRCNN', 'FSRCNN_s']
