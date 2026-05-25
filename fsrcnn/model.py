@@ -69,3 +69,13 @@ class FSRCNN(nn.Module):
         x = self.mapping(x)
         x = self.expanding(x)
         return self.deconv(x)
+
+
+class FSRCNN_s(FSRCNN):
+    """
+    Lightweight variant of FSRCNN with reduced d, s, m for faster inference.
+    Same architecture, smaller capacity: d=32, s=5, m=1.
+    """
+
+    def __init__(self, scale: int, num_channels: int = 3):
+        super().__init__(scale=scale, num_channels=num_channels, d=32, s=5, m=1)
